@@ -1,0 +1,168 @@
+/* =========================================================
+   BRITISH PROPOLIS TOILI - RESPONSIVE STYLESHEET
+   Media Queries: Laptop, Tablet, Mobile
+   ======================================================== */
+
+/* Laptop & Desktop (1024px to 1200px) */
+@media (max-width: 1200px) {
+  .hero-headline {
+    font-size: 2.75rem;
+  }
+  .features-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .benefits-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  .footer-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 32px;
+  }
+}
+
+/* Tablet (768px to 1023px) */
+@media (max-width: 1023px) {
+  .hero-grid {
+    grid-template-columns: 1fr;
+    gap: 40px;
+    text-align: center;
+  }
+  .hero-content {
+    max-width: 100%;
+  }
+  .hero-title-tag {
+    justify-content: center;
+  }
+  .hero-buttons {
+    justify-content: center;
+  }
+  .hero-trust-bar {
+    justify-content: center;
+  }
+  .products-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .benefits-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .timeline-grid {
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+  .contact-grid {
+    grid-template-columns: 1fr;
+  }
+  .promo-banner {
+    flex-direction: column;
+    text-align: center;
+    gap: 32px;
+    padding: 40px 24px;
+  }
+  .promo-content {
+    max-width: 100%;
+  }
+  .promo-price-tag {
+    justify-content: center;
+  }
+}
+
+/* Mobile (Up to 767px) */
+@media (max-width: 767px) {
+  .section-padding {
+    padding: 60px 0;
+  }
+  .section-title {
+    font-size: 1.75rem;
+  }
+  .header {
+    padding: 14px 0;
+  }
+  
+  /* Mobile Menu Drawer */
+  .hamburger-btn {
+    display: block;
+  }
+  .nav-menu {
+    position: fixed;
+    top: 0;
+    right: -100%;
+    width: 80%;
+    max-width: 300px;
+    height: 100vh;
+    background: var(--white);
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 80px 32px;
+    gap: 24px;
+    box-shadow: -8px 0 24px rgba(0,0,0,0.15);
+    transition: right 0.35s ease;
+    z-index: 999;
+  }
+  .nav-menu.active {
+    right: 0;
+  }
+
+  .hero-section {
+    padding-top: 120px;
+    padding-bottom: 60px;
+  }
+  .hero-headline {
+    font-size: 2.1rem;
+  }
+  .hero-subtitle {
+    font-size: 1.1rem;
+  }
+  .hero-buttons {
+    flex-direction: column;
+    width: 100%;
+  }
+  .hero-buttons .btn {
+    width: 100%;
+  }
+  
+  /* Badges positioning on mobile */
+  .badge-1 {
+    top: -10px;
+    left: 0;
+    font-size: 0.75rem;
+    padding: 8px 14px;
+  }
+  .badge-2 {
+    bottom: -10px;
+    right: 0;
+    font-size: 0.75rem;
+    padding: 8px 14px;
+  }
+  .badge-3 {
+    display: none;
+  }
+
+  .features-grid,
+  .products-grid,
+  .benefits-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .footer-grid {
+    grid-template-columns: 1fr;
+  }
+
+  /* Fixed Mobile Bottom Bar */
+  .mobile-bottom-bar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    background: var(--white);
+    padding: 12px 16px;
+    box-shadow: 0 -4px 16px rgba(0,0,0,0.1);
+    display: flex;
+    gap: 12px;
+    z-index: 900;
+  }
+  .mobile-bottom-bar .btn {
+    flex: 1;
+    padding: 12px;
+    font-size: 0.85rem;
+  }
+}

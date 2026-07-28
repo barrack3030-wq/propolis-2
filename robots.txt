@@ -1,0 +1,6 @@
+# Robots.txt for British Propolis Toili
+User-agent: *
+Allow: /
+
+# Sitemap Location
+Sitemap: https://britishpropolistoili.com/sitemap.xml

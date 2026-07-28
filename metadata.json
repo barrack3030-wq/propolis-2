@@ -1,0 +1,6 @@
+{
+  "name": "British Propolis Toili",
+  "description": "Suplemen Propolis Premium untuk Kesehatan Keluarga - British Propolis Toili",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
