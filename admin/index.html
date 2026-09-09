@@ -12,7 +12,7 @@ body{font-family:Arial,sans-serif;background:#f4f7f6;margin:0}.wrap{max-width:10
 <main class="wrap">
 <div class="card">
 <h1>CMS Blog</h1>
-<p>CMS sudah terhubung ke Google Apps Script. Kamu cukup memasukkan CMS API Key.</p>
+<p>CMS terhubung ke Google Apps Script. Masukkan CMS API Key untuk mengakses data.</p>
 <input id="key" type="password" placeholder="CMS API Key">
 <button onclick="testConnection()" class="test">Tes Koneksi CMS</button>
 <button onclick="loadPosts()">Muat Artikel</button>
@@ -60,7 +60,6 @@ const $=id=>document.getElementById(id);
 
 async function api(action,data={}){
   const payload={action,apiKey:$('key').value.trim(),...data};
-  // The active Apps Script deployment expects api_key.
   payload.api_key=payload.apiKey;
   const r=await fetch(APPS_SCRIPT_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(payload)});
   const text=await r.text();
@@ -73,8 +72,9 @@ async function testConnection(){
   $('connectionStatus').textContent='Mengecek koneksi CMS...';
   try{
     if(!$('key').value.trim()) throw Error('CMS API Key belum diisi.');
-    const x=await api('ping');
-    $('connectionStatus').textContent=x.ok?'✓ '+(x.message||'CMS connection OK'):(x.error||'Koneksi gagal.');
+    const x=await api('list_posts');
+    if(!x.ok) throw Error(x.error||'Koneksi CMS gagal.');
+    $('connectionStatus').textContent='✓ Koneksi CMS OK. '+((x.posts||[]).length)+' artikel ditemukan.';
   }catch(e){$('connectionStatus').textContent='✗ '+e.message}
 }
 
