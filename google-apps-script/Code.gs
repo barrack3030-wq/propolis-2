@@ -42,9 +42,9 @@ function putGithub_(path,content,message,sha) { const payload={message,content:U
 
 function generateAIArticle(prompt) {
   const props = PropertiesService.getScriptProperties();
-  const apiKey = props.getProperty('GEMINI_API_KEY');
-  const model = props.getProperty('GEMINI_MODEL') || 'gemini-2.5-flash';
-  if (!apiKey) return json({ok:false,error:'GEMINI_API_KEY belum diset di Script Properties.'});
+  const apiKey = props.getProperty('OPENAI_API_KEY');
+  const model = props.getProperty('OPENAI_MODEL') || 'gpt-5.6-luna';
+  if (!apiKey) return json({ok:false,error:'OPENAI_API_KEY belum diset di Script Properties.'});
 
   const topic = String(prompt.topic || '').trim();
   if (!topic) return json({ok:false,error:'Topik artikel wajib diisi.'});
@@ -67,26 +67,40 @@ Kembalikan HANYA JSON valid tanpa markdown code fence dengan struktur:
 {"title":"...","category":"...","slug":"...","excerpt":"...","seo_description":"...","content":"<h2>...</h2><p>...</p>"}
 Content harus berupa HTML sederhana menggunakan h2, h3, p, ul, li, dan strong bila diperlukan.`;
 
-  const endpoint = 'https://generativelanguage.googleapis.com/v1beta/models/' + encodeURIComponent(model) + ':generateContent?key=' + encodeURIComponent(apiKey);
   const payload = {
-    contents: [{ role: 'user', parts: [{ text: instruction }] }],
-    generationConfig: { temperature: 0.7, responseMimeType: 'application/json' }
+    model: model,
+    input: instruction,
+    temperature: 0.7
   };
 
-  const response = UrlFetchApp.fetch(endpoint, {
+  const response = UrlFetchApp.fetch('https://api.openai.com/v1/responses', {
     method: 'post',
     contentType: 'application/json',
+    headers: {Authorization: 'Bearer ' + apiKey},
     payload: JSON.stringify(payload),
     muteHttpExceptions: true
   });
 
   const status = response.getResponseCode();
   const raw = response.getContentText();
-  if (status < 200 || status >= 300) return json({ok:false,error:'Gemini API error '+status+': '+raw});
+  if (status < 200 || status >= 300) return json({ok:false,error:'OpenAI API error '+status+': '+raw});
 
-  const data = JSON.parse(raw);
-  const text = data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts && data.candidates[0].content.parts[0].text;
+  let data;
+  try { data = JSON.parse(raw); } catch (err) { return json({ok:false,error:'Respons OpenAI tidak valid: '+raw}); }
+
+  let text = data.output_text || '';
+  if (!text && data.output && Array.isArray(data.output)) {
+    data.output.forEach(function(item) {
+      if (item && item.content && Array.isArray(item.content)) {
+        item.content.forEach(function(part) {
+          if (part && part.type === 'output_text' && part.text) text += part.text;
+        });
+      }
+    });
+  }
   if (!text) return json({ok:false,error:'AI tidak mengembalikan artikel.'});
+
+  text = text.trim().replace(/^```json\s*/i,'').replace(/^```\s*/,'').replace(/\s*```$/,'').trim();
 
   let article;
   try { article = JSON.parse(text); }
