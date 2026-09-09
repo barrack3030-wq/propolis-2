@@ -3,6 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <title>CMS Blog | British Propolis Toili</title>
 <style>
 body{font-family:Arial,sans-serif;background:#f4f7f6;margin:0}.wrap{max-width:1000px;margin:auto;padding:30px 20px}.card{background:#fff;border-radius:14px;padding:22px;margin-bottom:20px;box-shadow:0 5px 20px #0001}input,textarea,select,button{width:100%;box-sizing:border-box;padding:12px;margin:7px 0;border:1px solid #ddd;border-radius:8px}textarea{min-height:180px}button{background:#176b45;color:#fff;border:0;font-weight:bold;cursor:pointer}.ai{background:#5b3fb5}.test{background:#555}.small{font-size:13px;color:#666}.post{border-top:1px solid #eee;padding:15px 0}.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}@media(max-width:700px){.grid{grid-template-columns:1fr}}
@@ -16,7 +19,7 @@ body{font-family:Arial,sans-serif;background:#f4f7f6;margin:0}.wrap{max-width:10
 <input id="key" type="password" placeholder="CMS API Key">
 <button onclick="testConnection()" class="test">Tes Koneksi CMS</button>
 <button onclick="loadPosts()">Muat Artikel</button>
-<p id="connectionStatus" class="small"></p>
+<p id="connectionStatus" class="small">Build: 2026-09-09-CMSFIX3</p>
 </div>
 
 <div class="card">
@@ -56,26 +59,27 @@ body{font-family:Arial,sans-serif;background:#f4f7f6;margin:0}.wrap{max-width:10
 
 <script>
 const APPS_SCRIPT_URL='https://script.google.com/macros/s/AKfycbxHiGLnhLXEt33YgWMvZYxyH6uQ86ncMIrhH2IzxAejUH7LeOyFRNQNmEnc8ATkXPJ0/exec';
+const BUILD='2026-09-09-CMSFIX3';
 const $=id=>document.getElementById(id);
 
 async function api(action,data={}){
   const payload={action,apiKey:$('key').value.trim(),...data};
   payload.api_key=payload.apiKey;
-  const r=await fetch(APPS_SCRIPT_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(payload)});
+  const r=await fetch(APPS_SCRIPT_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(payload),cache:'no-store'});
   const text=await r.text();
   let x;
-  try{x=JSON.parse(text)}catch(e){throw Error('Respons CMS bukan JSON. Kemungkinan Web App Apps Script belum diperbarui/deploy.')}
+  try{x=JSON.parse(text)}catch(e){throw Error('Respons CMS bukan JSON. Web App Apps Script bermasalah.')}
   return x;
 }
 
 async function testConnection(){
-  $('connectionStatus').textContent='Mengecek koneksi CMS...';
+  $('connectionStatus').textContent='Mengecek koneksi CMS... Build '+BUILD;
   try{
     if(!$('key').value.trim()) throw Error('CMS API Key belum diisi.');
     const x=await api('list_posts');
     if(!x.ok) throw Error(x.error||'Koneksi CMS gagal.');
-    $('connectionStatus').textContent='✓ Koneksi CMS OK. '+((x.posts||[]).length)+' artikel ditemukan.';
-  }catch(e){$('connectionStatus').textContent='✗ '+e.message}
+    $('connectionStatus').textContent='✓ Koneksi CMS OK. '+((x.posts||[]).length)+' artikel ditemukan. Build '+BUILD;
+  }catch(e){$('connectionStatus').textContent='✗ '+e.message+' Build '+BUILD}
 }
 
 async function loadPosts(){
