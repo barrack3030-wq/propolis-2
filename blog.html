@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Blog | British Propolis Toili</title>
+<meta name="description" content="Artikel edukasi dan tips kesehatan British Propolis Toili.">
+<link rel="stylesheet" href="assets/css/style.css"><link rel="stylesheet" href="assets/css/responsive.css">
+<style>
+body{background:#f7faf9}.blog-wrap{max-width:1150px;margin:0 auto;padding:130px 20px 70px}.blog-head{text-align:center;margin-bottom:45px}.blog-head h1{font-size:2.5rem;margin:10px 0}.blog-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:25px}.post-card{background:#fff;border-radius:18px;overflow:hidden;box-shadow:0 8px 30px rgba(0,0,0,.08);transition:.25s}.post-card:hover{transform:translateY(-4px)}.post-card img{width:100%;height:210px;object-fit:cover}.post-body{padding:22px}.post-meta{font-size:.85rem;opacity:.7}.post-body h2{font-size:1.25rem;margin:10px 0}.post-body p{line-height:1.7;opacity:.82}.read{display:inline-block;margin-top:12px;text-decoration:none;font-weight:600}.back{position:fixed;top:18px;left:20px;background:#fff;padding:9px 15px;border-radius:30px;text-decoration:none;box-shadow:0 4px 18px rgba(0,0,0,.1);z-index:5}@media(max-width:600px){.blog-wrap{padding-top:100px}.blog-head h1{font-size:2rem}}
+</style>
+</head><body>
+<a class="back" href="index.html">← Beranda</a>
+<main class="blog-wrap"><header class="blog-head"><div class="section-subtitle">BLOG BRITISH PROPOLIS TOILI</div><h1>Artikel & Edukasi</h1><p>Informasi, tips kesehatan, dan edukasi seputar propolis serta kebiasaan hidup sehat.</p></header><section id="posts" class="blog-grid"><p>Memuat artikel...</p></section></main>
+<script>
+(async()=>{const box=document.getElementById('posts');try{const r=await fetch('content/posts/index.json?'+Date.now());if(!r.ok)throw 0;const posts=await r.json();box.innerHTML=posts.map(p=>`<article class="post-card"><img src="${p.image}" alt="${p.title}" loading="lazy"><div class="post-body"><div class="post-meta">${p.category} · ${new Date(p.date).toLocaleDateString('id-ID')}</div><h2>${p.title}</h2><p>${p.excerpt}</p><a class="read" href="artikel.html?slug=${encodeURIComponent(p.slug)}">Baca selengkapnya →</a></div></article>`).join('')||'<p>Belum ada artikel.</p>'}catch(e){box.innerHTML='<p>Artikel belum dapat dimuat.</p>'}})();
+</script></body></html>
