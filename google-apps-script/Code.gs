@@ -16,12 +16,13 @@ function doPost(e) {
       case 'save_post': return savePost(body.post);
       case 'delete_post': return deletePost(body.slug);
       case 'publish_facebook': return publishFacebook(body.slug);
+      case 'generate_ai_article': return generateAIArticle(body.prompt || {});
       default: return json({ok:false,error:'Unknown action'});
     }
   } catch (err) { return json({ok:false,error:String(err)}); }
 }
 
-function githubHeaders_() { return {Authorization:'Bearer '+PropertiesService.getScriptProperties().getProperty('GITHUB_TOKEN'),Accept:'application/vnd.github+json'}; }
+function githubHeaders_() { return {Authorization:'Bearer '+PropertiesService.getScriptProperties().getProperty('GITHUB_TOKEN'),Accept:'application/vnd.github+json','X-GitHub-Api-Version':'2022-11-28'}; }
 function githubUrl_(path) { return 'https://api.github.com/repos/'+CONFIG.repo+'/contents/'+path+'?ref='+CONFIG.branch; }
 function githubGet_(path) { return JSON.parse(UrlFetchApp.fetch(githubUrl_(path),{headers:githubHeaders_(),muteHttpExceptions:true}).getContentText()); }
 function listPosts() { const x=githubGet_(CONFIG.postsIndex); if(!x.content)return json({ok:false,error:'Posts index not found'}); return json({ok:true,posts:JSON.parse(Utilities.newBlob(Utilities.base64Decode(x.content)).getDataAsString())}); }
@@ -37,7 +38,64 @@ function savePost(post) {
 
 function deletePost(slug) { const index=githubGet_(CONFIG.postsIndex); const posts=JSON.parse(Utilities.newBlob(Utilities.base64Decode(index.content)).getDataAsString()).filter(p=>p.slug!==slug); putGithub_(CONFIG.postsIndex,JSON.stringify(posts,null,2),'Delete blog post',index.sha); return json({ok:true}); }
 
-function putGithub_(path,content,message,sha) { const payload={message,content:Utilities.base64Encode(content,Utilities.Charset.UTF_8),branch:CONFIG.branch}; if(sha)payload.sha=sha; const r=UrlFetchApp.fetch('https://api.github.com/repos/'+CONFIG.repo+'/contents/'+path,{method:'put',headers:githubHeaders_(),contentType:'application/json',payload:JSON.stringify(payload),muteHttpExceptions:true}); const out=JSON.parse(r.getContentText()); if(r.getResponseCode()>=300)throw Error(out.message||'GitHub error'); return out; }
+function putGithub_(path,content,message,sha) { const payload={message,content:Utilities.base64Encode(Utilities.newBlob(content,'application/json').getBytes()),branch:CONFIG.branch}; if(sha)payload.sha=sha; const r=UrlFetchApp.fetch('https://api.github.com/repos/'+CONFIG.repo+'/contents/'+path,{method:'put',headers:githubHeaders_(),contentType:'application/json',payload:JSON.stringify(payload),muteHttpExceptions:true}); const out=JSON.parse(r.getContentText()); if(r.getResponseCode()>=300)throw Error(out.message||'GitHub error'); return out; }
+
+function generateAIArticle(prompt) {
+  const props = PropertiesService.getScriptProperties();
+  const apiKey = props.getProperty('GEMINI_API_KEY');
+  const model = props.getProperty('GEMINI_MODEL') || 'gemini-2.5-flash';
+  if (!apiKey) return json({ok:false,error:'GEMINI_API_KEY belum diset di Script Properties.'});
+
+  const topic = String(prompt.topic || '').trim();
+  if (!topic) return json({ok:false,error:'Topik artikel wajib diisi.'});
+
+  const language = prompt.language || 'Indonesia';
+  const keyword = prompt.keyword || topic;
+  const style = prompt.style || 'edukasi';
+  const length = prompt.length || 'sedang';
+
+  const instruction = `Buat artikel blog untuk British Propolis Toili.
+Topik: ${topic}
+Keyword utama: ${keyword}
+Bahasa: ${language}
+Gaya: ${style}
+Panjang: ${length}
+
+Tulis artikel SEO-friendly tetapi natural. Jangan membuat klaim bahwa propolis atau produk tertentu dapat menyembuhkan penyakit. Jika membahas kesehatan, gunakan bahasa edukatif dan hati-hati. Jangan mengarang fakta spesifik yang tidak diperlukan.
+
+Kembalikan HANYA JSON valid tanpa markdown code fence dengan struktur:
+{"title":"...","category":"...","slug":"...","excerpt":"...","seo_description":"...","content":"<h2>...</h2><p>...</p>"}
+Content harus berupa HTML sederhana menggunakan h2, h3, p, ul, li, dan strong bila diperlukan.`;
+
+  const endpoint = 'https://generativelanguage.googleapis.com/v1beta/models/' + encodeURIComponent(model) + ':generateContent?key=' + encodeURIComponent(apiKey);
+  const payload = {
+    contents: [{ role: 'user', parts: [{ text: instruction }] }],
+    generationConfig: { temperature: 0.7, responseMimeType: 'application/json' }
+  };
+
+  const response = UrlFetchApp.fetch(endpoint, {
+    method: 'post',
+    contentType: 'application/json',
+    payload: JSON.stringify(payload),
+    muteHttpExceptions: true
+  });
+
+  const status = response.getResponseCode();
+  const raw = response.getContentText();
+  if (status < 200 || status >= 300) return json({ok:false,error:'Gemini API error '+status+': '+raw});
+
+  const data = JSON.parse(raw);
+  const text = data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts && data.candidates[0].content.parts[0].text;
+  if (!text) return json({ok:false,error:'AI tidak mengembalikan artikel.'});
+
+  let article;
+  try { article = JSON.parse(text); }
+  catch (err) { return json({ok:false,error:'Format hasil AI tidak valid: '+text}); }
+
+  article.date = new Date().toISOString().slice(0,10);
+  article.image = '';
+  return json({ok:true,article:article});
+}
 
 function publishFacebook(slug) {
   const index=githubGet_(CONFIG.postsIndex); const posts=JSON.parse(Utilities.newBlob(Utilities.base64Decode(index.content)).getDataAsString()); const p=posts.find(x=>x.slug===slug); if(!p) return json({ok:false,error:'Artikel tidak ditemukan'});
