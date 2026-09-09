@@ -2,57 +2,111 @@ const CONFIG = {
   repo: 'barrack3030-wq/propolis-2',
   branch: 'main',
   postsIndex: 'content/posts/index.json',
-  siteUrl: 'https://agenbptoili.my.id/'
+  siteUrl: 'https://agenbptoili.my.id/',
+  githubApi: 'https://api.github.com'
 };
+
+/* =========================
+   WEB APP
+========================= */
 
 function doGet() {
   const props = PropertiesService.getScriptProperties();
-  return json({
+  return jsonResponse({
     ok: true,
-    service: 'British Propolis Toili Blog CMS',
-    auth: 'ready',
+    service: 'British Propolis Toili CMS',
+    status: 'online',
     cms_key_configured: !!String(props.getProperty('CMS_API_KEY') || '').trim(),
     github_token_configured: !!String(props.getProperty('GITHUB_TOKEN') || '').trim(),
     openai_key_configured: !!String(props.getProperty('OPENAI_API_KEY') || '').trim(),
-    facebook_configured: !!String(props.getProperty('FACEBOOK_PAGE_ID') || '').trim() && !!String(props.getProperty('FACEBOOK_PAGE_ACCESS_TOKEN') || '').trim()
+    facebook_configured:
+      !!String(props.getProperty('FACEBOOK_PAGE_ID') || '').trim() &&
+      !!String(props.getProperty('FACEBOOK_PAGE_ACCESS_TOKEN') || '').trim()
   });
 }
 
 function doPost(e) {
   try {
-    if (!e || !e.postData || !e.postData.contents) return json({ok:false,error:'Request kosong'});
-
-    const body = JSON.parse(e.postData.contents || '{}');
-    const props = PropertiesService.getScriptProperties();
-    const configuredKey = String(props.getProperty('CMS_API_KEY') || '').trim();
-    const receivedKey = String(body.apiKey || '').trim();
-
-    // Auth is checked before any GitHub, OpenAI, or Facebook operation.
-    if (!configuredKey) return json({ok:false,error:'CMS_API_KEY belum dikonfigurasi di Script Properties pada project Apps Script ini.'});
-    if (!receivedKey) return json({ok:false,error:'CMS API Key belum diisi.'});
-    if (receivedKey !== configuredKey) return json({ok:false,error:'CMS API Key salah. Gunakan nilai CMS_API_KEY dari Script Properties project Apps Script ini.'});
-
-    switch (body.action) {
-      case 'ping': return json({ok:true,message:'CMS connection OK'});
-      case 'list_posts': return listPosts();
-      case 'save_post': return savePost(body.post);
-      case 'delete_post': return deletePost(body.slug);
-      case 'publish_facebook': return publishFacebook(body.slug);
-      case 'generate_ai_article': return generateAIArticle(body.prompt || {});
-      default: return json({ok:false,error:'Unknown action: '+body.action});
+    if (!e || !e.postData || !e.postData.contents) {
+      return jsonResponse({
+        ok: false,
+        error: 'Request body kosong.'
+      });
     }
-  } catch (err) {
-    return json({ok:false,error:String(err && err.message ? err.message : err)});
+
+    const data = JSON.parse(e.postData.contents || '{}');
+    const configuredKey = String(
+      PropertiesService.getScriptProperties().getProperty('CMS_API_KEY') || ''
+    ).trim();
+
+    // Support both names so old/new CMS frontend remain compatible.
+    const receivedKey = String(data.api_key || data.apiKey || '').trim();
+
+    if (!configuredKey) {
+      return jsonResponse({
+        ok: false,
+        error: 'CMS_API_KEY belum dikonfigurasi di Script Properties.'
+      });
+    }
+
+    if (!receivedKey) {
+      return jsonResponse({
+        ok: false,
+        error: 'CMS API Key belum diisi.'
+      });
+    }
+
+    if (receivedKey !== configuredKey) {
+      return jsonResponse({
+        ok: false,
+        error: 'CMS API Key salah.'
+      });
+    }
+
+    switch (data.action) {
+      case 'list_posts':
+        return jsonResponse(listPosts());
+
+      case 'save_post':
+        return jsonResponse(savePost(data.post));
+
+      case 'delete_post':
+        return jsonResponse(deletePost(data.slug));
+
+      case 'publish_facebook':
+        return jsonResponse(publishFacebook(data.slug));
+
+      case 'generate_ai_article':
+        return jsonResponse(generateAIArticle(data.prompt || {}));
+
+      default:
+        return jsonResponse({
+          ok: false,
+          error: 'Action tidak dikenal: ' + String(data.action || '')
+        });
+    }
+
+  } catch (error) {
+    return jsonResponse({
+      ok: false,
+      error: error && error.message ? error.message : String(error)
+    });
   }
 }
 
-function getProp_(name) {
-  return String(PropertiesService.getScriptProperties().getProperty(name) || '').trim();
-}
+/* =========================
+   GITHUB HELPERS
+========================= */
 
-function githubHeaders_() {
-  const token = getProp_('GITHUB_TOKEN');
-  if (!token) throw Error('GITHUB_TOKEN belum dikonfigurasi di Script Properties.');
+function githubHeaders() {
+  const token = String(
+    PropertiesService.getScriptProperties().getProperty('GITHUB_TOKEN') || ''
+  ).trim();
+
+  if (!token) {
+    throw new Error('GITHUB_TOKEN belum dikonfigurasi di Script Properties.');
+  }
+
   return {
     Authorization: 'Bearer ' + token,
     Accept: 'application/vnd.github+json',
@@ -60,152 +114,548 @@ function githubHeaders_() {
   };
 }
 
-function githubUrl_(path) {
-  return 'https://api.github.com/repos/' + CONFIG.repo + '/contents/' + path + '?ref=' + CONFIG.branch;
+function githubFileUrl(path) {
+  return CONFIG.githubApi +
+    '/repos/' + CONFIG.repo +
+    '/contents/' + path +
+    '?ref=' + encodeURIComponent(CONFIG.branch);
 }
 
-function githubGet_(path) {
-  const response = UrlFetchApp.fetch(githubUrl_(path), {
-    headers: githubHeaders_(),
-    muteHttpExceptions: true
-  });
-  const status = response.getResponseCode();
-  const raw = response.getContentText();
-  let data;
-  try { data = JSON.parse(raw); } catch (err) { throw Error('GitHub mengembalikan respons tidak valid. HTTP ' + status); }
-  if (status < 200 || status >= 300) throw Error('GitHub error ' + status + ': ' + (data.message || raw));
-  return data;
+function githubGetFile(path) {
+  try {
+    const response = UrlFetchApp.fetch(githubFileUrl(path), {
+      method: 'get',
+      headers: githubHeaders(),
+      muteHttpExceptions: true
+    });
+
+    const status = response.getResponseCode();
+    const raw = response.getContentText();
+
+    let data;
+    try {
+      data = JSON.parse(raw);
+    } catch (error) {
+      return {
+        ok: false,
+        error: 'Respons GitHub tidak valid. HTTP ' + status
+      };
+    }
+
+    if (status < 200 || status >= 300) {
+      return {
+        ok: false,
+        error: 'GitHub error ' + status + ': ' + (data.message || raw)
+      };
+    }
+
+    if (!data.content) {
+      return {
+        ok: false,
+        error: 'File GitHub tidak memiliki content.'
+      };
+    }
+
+    const decoded = Utilities.newBlob(
+      Utilities.base64Decode(data.content.replace(/\s/g, ''))
+    ).getDataAsString('UTF-8');
+
+    return {
+      ok: true,
+      content: decoded,
+      sha: data.sha,
+      name: data.name
+    };
+
+  } catch (error) {
+    return {
+      ok: false,
+      error: error && error.message ? error.message : String(error)
+    };
+  }
 }
+
+function githubUpdateFile(path, content, sha, message) {
+  try {
+    const payload = {
+      message: message || 'CMS update',
+      content: Utilities.base64Encode(
+        Utilities.newBlob(content, 'text/plain', path).getBytes()
+      ),
+      branch: CONFIG.branch
+    };
+
+    if (sha) {
+      payload.sha = sha;
+    }
+
+    const response = UrlFetchApp.fetch(
+      CONFIG.githubApi + '/repos/' + CONFIG.repo + '/contents/' + path,
+      {
+        method: 'put',
+        headers: githubHeaders(),
+        contentType: 'application/json',
+        payload: JSON.stringify(payload),
+        muteHttpExceptions: true
+      }
+    );
+
+    const status = response.getResponseCode();
+    const raw = response.getContentText();
+
+    let data;
+    try {
+      data = JSON.parse(raw);
+    } catch (error) {
+      return {
+        ok: false,
+        error: 'Respons update GitHub tidak valid. HTTP ' + status
+      };
+    }
+
+    if (status < 200 || status >= 300) {
+      return {
+        ok: false,
+        error: 'GitHub update error ' + status + ': ' + (data.message || raw)
+      };
+    }
+
+    return {
+      ok: true,
+      sha: data.content ? data.content.sha : ''
+    };
+
+  } catch (error) {
+    return {
+      ok: false,
+      error: error && error.message ? error.message : String(error)
+    };
+  }
+}
+
+/* =========================
+   LIST POSTS
+========================= */
 
 function listPosts() {
-  const x = githubGet_(CONFIG.postsIndex);
-  if (!x.content) return json({ok:false,error:'Posts index not found'});
-  const posts = JSON.parse(Utilities.newBlob(Utilities.base64Decode(x.content)).getDataAsString());
-  return json({ok:true,posts:posts});
+  const file = githubGetFile(CONFIG.postsIndex);
+
+  if (!file.ok) {
+    return file;
+  }
+
+  let posts = [];
+
+  try {
+    posts = JSON.parse(file.content);
+  } catch (error) {
+    return {
+      ok: false,
+      error: 'index.json tidak valid.'
+    };
+  }
+
+  return {
+    ok: true,
+    posts: posts
+  };
 }
+
+/* =========================
+   SAVE POST
+========================= */
 
 function savePost(post) {
-  if (!post || !post.slug || !post.title) return json({ok:false,error:'Slug dan judul wajib diisi'});
-  const index = githubGet_(CONFIG.postsIndex);
-  const posts = JSON.parse(Utilities.newBlob(Utilities.base64Decode(index.content)).getDataAsString());
-  const clean = {
-    slug: post.slug,
-    title: post.title,
-    category: post.category || 'Edukasi',
-    date: post.date || new Date().toISOString().slice(0,10),
-    image: post.image || '',
-    excerpt: post.excerpt || '',
-    seo_description: post.seo_description || '',
-    content: post.content || ''
+  if (!post) {
+    return {
+      ok: false,
+      error: 'Data artikel kosong.'
+    };
+  }
+
+  if (!post.slug || !post.title) {
+    return {
+      ok: false,
+      error: 'Slug dan title wajib diisi.'
+    };
+  }
+
+  const file = githubGetFile(CONFIG.postsIndex);
+
+  if (!file.ok) {
+    return file;
+  }
+
+  let posts = [];
+
+  try {
+    posts = JSON.parse(file.content);
+    if (!Array.isArray(posts)) posts = [];
+  } catch (error) {
+    posts = [];
+  }
+
+  const newPost = {
+    slug: String(post.slug).trim(),
+    title: String(post.title).trim(),
+    category: String(post.category || 'Edukasi').trim(),
+    date: post.date || Utilities.formatDate(
+      new Date(),
+      Session.getScriptTimeZone() || 'Asia/Makassar',
+      'yyyy-MM-dd'
+    ),
+    image: String(post.image || '').trim(),
+    excerpt: String(post.excerpt || '').trim(),
+    seo_description: String(post.seo_description || '').trim(),
+    content: String(post.content || '')
   };
-  const i = posts.findIndex(function(p){ return p.slug === clean.slug; });
-  if (i >= 0) posts[i] = clean; else posts.unshift(clean);
-  putGithub_(CONFIG.postsIndex, JSON.stringify(posts,null,2), 'Update blog posts index', index.sha);
-  return json({ok:true,post:clean});
+
+  const index = posts.findIndex(function(item) {
+    return item && item.slug === newPost.slug;
+  });
+
+  if (index >= 0) {
+    posts[index] = newPost;
+  } else {
+    posts.unshift(newPost);
+  }
+
+  const result = githubUpdateFile(
+    CONFIG.postsIndex,
+    JSON.stringify(posts, null, 2),
+    file.sha,
+    'CMS: save article ' + newPost.slug
+  );
+
+  if (!result.ok) {
+    return result;
+  }
+
+  return {
+    ok: true,
+    message: 'Artikel berhasil disimpan.',
+    post: newPost
+  };
 }
+
+/* =========================
+   DELETE POST
+========================= */
 
 function deletePost(slug) {
-  if (!slug) return json({ok:false,error:'Slug wajib diisi'});
-  const index = githubGet_(CONFIG.postsIndex);
-  const posts = JSON.parse(Utilities.newBlob(Utilities.base64Decode(index.content)).getDataAsString()).filter(function(p){ return p.slug !== slug; });
-  putGithub_(CONFIG.postsIndex, JSON.stringify(posts,null,2), 'Delete blog post', index.sha);
-  return json({ok:true});
+  if (!slug) {
+    return {
+      ok: false,
+      error: 'Slug artikel tidak ada.'
+    };
+  }
+
+  const file = githubGetFile(CONFIG.postsIndex);
+
+  if (!file.ok) {
+    return file;
+  }
+
+  let posts;
+
+  try {
+    posts = JSON.parse(file.content);
+    if (!Array.isArray(posts)) posts = [];
+  } catch (error) {
+    return {
+      ok: false,
+      error: 'index.json tidak valid.'
+    };
+  }
+
+  const originalLength = posts.length;
+
+  posts = posts.filter(function(post) {
+    return post.slug !== slug;
+  });
+
+  if (posts.length === originalLength) {
+    return {
+      ok: false,
+      error: 'Artikel tidak ditemukan.'
+    };
+  }
+
+  const result = githubUpdateFile(
+    CONFIG.postsIndex,
+    JSON.stringify(posts, null, 2),
+    file.sha,
+    'CMS: delete article ' + slug
+  );
+
+  if (!result.ok) {
+    return result;
+  }
+
+  return {
+    ok: true,
+    message: 'Artikel berhasil dihapus.'
+  };
 }
 
-function putGithub_(path,content,message,sha) {
-  const payload = {
-    message: message,
-    content: Utilities.base64Encode(Utilities.newBlob(content,'application/json').getBytes()),
-    branch: CONFIG.branch
-  };
-  if (sha) payload.sha = sha;
-  const r = UrlFetchApp.fetch('https://api.github.com/repos/'+CONFIG.repo+'/contents/'+path, {
-    method:'put',
-    headers:githubHeaders_(),
-    contentType:'application/json',
-    payload:JSON.stringify(payload),
-    muteHttpExceptions:true
-  });
-  const out = JSON.parse(r.getContentText());
-  if (r.getResponseCode() >= 300) throw Error(out.message || 'GitHub error');
-  return out;
-}
+/* =========================
+   AI ARTICLE
+========================= */
 
 function generateAIArticle(prompt) {
-  const apiKey = getProp_('OPENAI_API_KEY');
-  const model = getProp_('OPENAI_MODEL') || 'gpt-5.6-luna';
-  if (!apiKey) return json({ok:false,error:'OPENAI_API_KEY belum diset di Script Properties.'});
+  const apiKey = String(
+    PropertiesService.getScriptProperties().getProperty('OPENAI_API_KEY') || ''
+  ).trim();
+
+  if (!apiKey) {
+    return {
+      ok: false,
+      error: 'OPENAI_API_KEY belum dikonfigurasi di Script Properties.'
+    };
+  }
 
   const topic = String(prompt.topic || '').trim();
-  if (!topic) return json({ok:false,error:'Topik artikel wajib diisi.'});
 
-  const language = prompt.language || 'Indonesia';
-  const keyword = prompt.keyword || topic;
-  const style = prompt.style || 'edukasi';
-  const length = prompt.length || 'sedang';
-  const instruction = `Buat artikel blog untuk British Propolis Toili.\nTopik: ${topic}\nKeyword utama: ${keyword}\nBahasa: ${language}\nGaya: ${style}\nPanjang: ${length}\n\nTulis artikel SEO-friendly tetapi natural. Jangan membuat klaim bahwa propolis atau produk tertentu dapat menyembuhkan penyakit. Jika membahas kesehatan, gunakan bahasa edukatif dan hati-hati. Jangan mengarang fakta spesifik yang tidak diperlukan.\n\nKembalikan HANYA JSON valid tanpa markdown code fence dengan struktur:\n{"title":"...","category":"...","slug":"...","excerpt":"...","seo_description":"...","content":"<h2>...</h2><p>...</p>"}\nContent harus berupa HTML sederhana menggunakan h2, h3, p, ul, li, dan strong bila diperlukan.`;
+  if (!topic) {
+    return {
+      ok: false,
+      error: 'Topik artikel wajib diisi.'
+    };
+  }
 
-  const payload = {model:model,input:instruction,temperature:0.7};
+  const keyword = String(prompt.keyword || topic).trim();
+  const language = String(prompt.language || 'Indonesia').trim();
+  const style = String(prompt.style || 'edukasi').trim();
+  const length = String(prompt.length || 'sedang').trim();
+
+  const instruction = [
+    'Buat artikel blog profesional untuk British Propolis Toili.',
+    '',
+    'Topik: ' + topic,
+    'Keyword utama: ' + keyword,
+    'Bahasa: ' + language,
+    'Gaya: ' + style,
+    'Panjang: ' + length,
+    '',
+    'Ketentuan:',
+    '- SEO-friendly tetapi natural.',
+    '- Gunakan bahasa yang mudah dibaca.',
+    '- Jangan membuat klaim bahwa propolis dapat menyembuhkan penyakit.',
+    '- Jangan membuat klaim medis yang tidak dapat dibuktikan.',
+    '- Jangan mengarang fakta spesifik.',
+    '- Buat judul, kategori, slug, excerpt, SEO description dan content HTML.',
+    '',
+    'Kembalikan HANYA JSON valid tanpa markdown code fence dengan struktur:',
+    '{',
+    '  "title": "...",',
+    '  "category": "...",',
+    '  "slug": "...",',
+    '  "excerpt": "...",',
+    '  "seo_description": "...",',
+    '  "content": "<h2>...</h2><p>...</p>"',
+    '}',
+    '',
+    'Content hanya boleh menggunakan HTML sederhana: h2, h3, p, ul, li, strong.'
+  ].join('\n');
+
+  const model = String(
+    PropertiesService.getScriptProperties().getProperty('OPENAI_MODEL') || ''
+  ).trim() || 'gpt-4.1-mini';
+
   const response = UrlFetchApp.fetch('https://api.openai.com/v1/responses', {
-    method:'post',
-    contentType:'application/json',
-    headers:{Authorization:'Bearer '+apiKey},
-    payload:JSON.stringify(payload),
-    muteHttpExceptions:true
+    method: 'post',
+    contentType: 'application/json',
+    headers: {
+      Authorization: 'Bearer ' + apiKey
+    },
+    payload: JSON.stringify({
+      model: model,
+      input: instruction
+    }),
+    muteHttpExceptions: true
   });
+
   const status = response.getResponseCode();
   const raw = response.getContentText();
-  if (status < 200 || status >= 300) return json({ok:false,error:'OpenAI API error '+status+': '+raw});
+
+  if (status < 200 || status >= 300) {
+    return {
+      ok: false,
+      error: 'OpenAI API error ' + status + ': ' + raw
+    };
+  }
 
   let data;
-  try { data = JSON.parse(raw); } catch (err) { return json({ok:false,error:'Respons OpenAI tidak valid: '+raw}); }
-  let text = data.output_text || '';
-  if (!text && data.output && Array.isArray(data.output)) {
-    data.output.forEach(function(item){
-      if (item && item.content && Array.isArray(item.content)) {
-        item.content.forEach(function(part){
-          if (part && part.type === 'output_text' && part.text) text += part.text;
-        });
-      }
+
+  try {
+    data = JSON.parse(raw);
+  } catch (error) {
+    return {
+      ok: false,
+      error: 'Respons OpenAI tidak valid.'
+    };
+  }
+
+  let text = String(data.output_text || '');
+
+  if (!text && Array.isArray(data.output)) {
+    data.output.forEach(function(item) {
+      if (!item || !Array.isArray(item.content)) return;
+
+      item.content.forEach(function(part) {
+        if (part && part.type === 'output_text' && part.text) {
+          text += part.text;
+        }
+      });
     });
   }
-  if (!text) return json({ok:false,error:'AI tidak mengembalikan artikel.'});
 
-  text = text.trim().replace(/^```json\s*/i,'').replace(/^```\s*/,'').replace(/\s*```$/,'').trim();
+  text = text
+    .trim()
+    .replace(/^```json\s*/i, '')
+    .replace(/^```\s*/i, '')
+    .replace(/\s*```$/i, '')
+    .trim();
+
+  if (!text) {
+    return {
+      ok: false,
+      error: 'AI tidak mengembalikan artikel.'
+    };
+  }
+
   let article;
-  try { article = JSON.parse(text); } catch (err) { return json({ok:false,error:'Format hasil AI tidak valid: '+text}); }
-  article.date = new Date().toISOString().slice(0,10);
-  article.image = '';
-  return json({ok:true,article:article});
+
+  try {
+    article = JSON.parse(text);
+  } catch (error) {
+    return {
+      ok: false,
+      error: 'Hasil AI bukan JSON valid.'
+    };
+  }
+
+  article.date = Utilities.formatDate(
+    new Date(),
+    Session.getScriptTimeZone() || 'Asia/Makassar',
+    'yyyy-MM-dd'
+  );
+
+  article.image = article.image || '';
+
+  return {
+    ok: true,
+    article: article
+  };
 }
+
+/* =========================
+   FACEBOOK
+========================= */
 
 function publishFacebook(slug) {
-  const index = githubGet_(CONFIG.postsIndex);
-  const posts = JSON.parse(Utilities.newBlob(Utilities.base64Decode(index.content)).getDataAsString());
-  const p = posts.find(function(x){ return x.slug === slug; });
-  if (!p) return json({ok:false,error:'Artikel tidak ditemukan'});
+  if (!slug) {
+    return {
+      ok: false,
+      error: 'Slug artikel tidak ada.'
+    };
+  }
 
-  const pageId = getProp_('FACEBOOK_PAGE_ID');
-  const token = getProp_('FACEBOOK_PAGE_ACCESS_TOKEN');
-  const version = getProp_('FACEBOOK_GRAPH_VERSION') || 'v23.0';
-  if (!pageId || !token) return json({ok:false,error:'Facebook credentials belum diatur'});
+  const file = githubGetFile(CONFIG.postsIndex);
 
-  const url = CONFIG.siteUrl + 'artikel.html?slug=' + encodeURIComponent(p.slug);
-  const endpoint = 'https://graph.facebook.com/' + version + '/' + pageId + '/feed';
-  const r = UrlFetchApp.fetch(endpoint, {
-    method:'post',
-    payload:{
-      message:p.title+'\n\n'+p.excerpt+'\n\nBaca selengkapnya: '+url,
-      link:url,
-      access_token:token
-    },
-    muteHttpExceptions:true
+  if (!file.ok) {
+    return file;
+  }
+
+  let posts;
+
+  try {
+    posts = JSON.parse(file.content);
+  } catch (error) {
+    return {
+      ok: false,
+      error: 'index.json tidak valid.'
+    };
+  }
+
+  const post = posts.find(function(item) {
+    return item && item.slug === slug;
   });
-  const out = JSON.parse(r.getContentText());
-  if (out.error) return json({ok:false,error:out.error.message});
-  return json({ok:true,id:out.id});
+
+  if (!post) {
+    return {
+      ok: false,
+      error: 'Artikel tidak ditemukan.'
+    };
+  }
+
+  const props = PropertiesService.getScriptProperties();
+  const pageId = String(props.getProperty('FACEBOOK_PAGE_ID') || '').trim();
+  const token = String(props.getProperty('FACEBOOK_PAGE_ACCESS_TOKEN') || '').trim();
+  const version = String(props.getProperty('FACEBOOK_GRAPH_VERSION') || '').trim() || 'v23.0';
+
+  if (!pageId || !token) {
+    return {
+      ok: false,
+      error: 'FACEBOOK_PAGE_ID atau FACEBOOK_PAGE_ACCESS_TOKEN belum dikonfigurasi.'
+    };
+  }
+
+  const url = CONFIG.siteUrl + 'artikel.html?slug=' + encodeURIComponent(post.slug);
+  const endpoint = 'https://graph.facebook.com/' + version + '/' + pageId + '/feed';
+
+  const message = [
+    post.title,
+    '',
+    post.excerpt || '',
+    '',
+    'Baca selengkapnya: ' + url
+  ].join('\n');
+
+  const response = UrlFetchApp.fetch(endpoint, {
+    method: 'post',
+    payload: {
+      message: message,
+      link: url,
+      access_token: token
+    },
+    muteHttpExceptions: true
+  });
+
+  const raw = response.getContentText();
+  let data;
+
+  try {
+    data = JSON.parse(raw);
+  } catch (error) {
+    return {
+      ok: false,
+      error: 'Respons Facebook tidak valid.'
+    };
+  }
+
+  if (response.getResponseCode() >= 300 || data.error) {
+    return {
+      ok: false,
+      error: data.error && data.error.message
+        ? data.error.message
+        : 'Facebook publish gagal.'
+    };
+  }
+
+  return {
+    ok: true,
+    message: 'Artikel berhasil dipublish ke Facebook Page.',
+    id: data.id || ''
+  };
 }
 
-function json(x) {
-  return ContentService.createTextOutput(JSON.stringify(x)).setMimeType(ContentService.MimeType.JSON);
+/* =========================
+   RESPONSE
+========================= */
+
+function jsonResponse(data) {
+  return ContentService
+    .createTextOutput(JSON.stringify(data))
+    .setMimeType(ContentService.MimeType.JSON);
 }
