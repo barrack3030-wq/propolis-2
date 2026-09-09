@@ -9,58 +9,39 @@ document.addEventListener('DOMContentLoaded', () => {
   const navMenu = document.getElementById('nav-menu');
   const navLinks = document.querySelectorAll('.nav-link');
 
-  // Sticky Header Glass Effect on Scroll
   window.addEventListener('scroll', () => {
-    if (window.scrollY > 50) {
-      header?.classList.add('scrolled');
-    } else {
-      header?.classList.remove('scrolled');
-    }
+    if (window.scrollY > 50) header?.classList.add('scrolled');
+    else header?.classList.remove('scrolled');
 
-    // Scroll spy for active nav link
     let currentSection = '';
-    const sections = document.querySelectorAll('section[id]');
-    
-    sections.forEach(section => {
+    document.querySelectorAll('section[id]').forEach(section => {
       const sectionTop = section.offsetTop - 120;
-      const sectionHeight = section.offsetHeight;
-      if (window.scrollY >= sectionTop && window.scrollY < sectionTop + sectionHeight) {
-        currentSection = section.getAttribute('id');
-      }
+      if (window.scrollY >= sectionTop && window.scrollY < sectionTop + section.offsetHeight) currentSection = section.id;
     });
-
     navLinks.forEach(link => {
       link.classList.remove('active');
-      if (link.getAttribute('href') === `#${currentSection}`) {
-        link.classList.add('active');
-      }
+      if (link.getAttribute('href') === `#${currentSection}`) link.classList.add('active');
     });
   });
 
-  // Mobile Menu Hamburger Toggle
+  if (navMenu && !navMenu.querySelector('a[href="blog.html"]')) {
+    const li = document.createElement('li');
+    li.innerHTML = '<a href="blog.html" class="nav-link">Blog</a>';
+    navMenu.appendChild(li);
+  }
+
   if (hamburgerBtn && navMenu) {
     hamburgerBtn.addEventListener('click', () => {
       navMenu.classList.toggle('active');
-      const isExpanded = navMenu.classList.contains('active');
-      hamburgerBtn.setAttribute('aria-expanded', isExpanded ? 'true' : 'false');
+      hamburgerBtn.setAttribute('aria-expanded', navMenu.classList.contains('active') ? 'true' : 'false');
     });
-
-    // Close mobile menu on link click
-    navLinks.forEach(link => {
-      link.addEventListener('click', () => {
+    navMenu.addEventListener('click', e => {
+      if (e.target.closest('.nav-link')) {
         navMenu.classList.remove('active');
         hamburgerBtn.setAttribute('aria-expanded', 'false');
-      });
+      }
     });
   }
 
-  // Initialize AOS (Animate On Scroll)
-  if (typeof AOS !== 'undefined') {
-    AOS.init({
-      duration: 800,
-      easing: 'ease-in-out',
-      once: true,
-      offset: 100
-    });
-  }
+  if (typeof AOS !== 'undefined') AOS.init({duration:800,easing:'ease-in-out',once:true,offset:100});
 });
