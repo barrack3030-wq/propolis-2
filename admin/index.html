@@ -3,123 +3,99 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-<meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="0">
-<title>CMS Blog | British Propolis Toili</title>
+<meta name="robots" content="noindex,nofollow">
+<title>CMS | British Propolis Toili</title>
 <style>
-body{font-family:Arial,sans-serif;background:#f4f7f6;margin:0}.wrap{max-width:1000px;margin:auto;padding:30px 20px}.card{background:#fff;border-radius:14px;padding:22px;margin-bottom:20px;box-shadow:0 5px 20px #0001}input,textarea,select,button{width:100%;box-sizing:border-box;padding:12px;margin:7px 0;border:1px solid #ddd;border-radius:8px}textarea{min-height:180px}button{background:#176b45;color:#fff;border:0;font-weight:bold;cursor:pointer}.ai{background:#5b3fb5}.test{background:#555}.small{font-size:13px;color:#666}.post{border-top:1px solid #eee;padding:15px 0}.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}@media(max-width:700px){.grid{grid-template-columns:1fr}}
+*{box-sizing:border-box}body{margin:0;background:#f5f7f6;color:#17352a;font-family:Inter,Arial,sans-serif}.wrap{max-width:1050px;margin:auto;padding:24px 16px 60px}.top{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:18px}.brand h1{margin:0;font-size:25px}.brand p{margin:5px 0 0;color:#68766f;font-size:13px}.card{background:#fff;border:1px solid #e4ebe7;border-radius:14px;padding:20px;margin-bottom:16px;box-shadow:0 4px 18px #17352a0a}.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.field{margin-bottom:10px}.field label{display:block;font-size:12px;font-weight:700;margin-bottom:5px;color:#52615a}input,textarea,select{width:100%;padding:11px 12px;border:1px solid #d8e1dc;border-radius:8px;background:#fff;color:#18382b;font:inherit}textarea{min-height:260px;resize:vertical}.actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}.btn{width:auto;border:0;border-radius:8px;padding:11px 15px;background:#176b45;color:#fff;font-weight:700;cursor:pointer}.btn.secondary{background:#66736d}.btn.ai{background:#5b3fb5}.btn.danger{background:#a33a3a}.btn.light{background:#edf3ef;color:#24543f}.status{font-size:13px;color:#637169;min-height:18px;margin:10px 0 0}.post{padding:13px 0;border-top:1px solid #edf1ef}.post:first-child{border-top:0}.post-title{font-weight:700}.meta{font-size:12px;color:#718078;margin-top:4px}.post-actions{display:flex;gap:6px;margin-top:8px}.post-actions button{width:auto;padding:7px 10px;font-size:12px}.search{margin-bottom:8px}.notice{background:#f0f7f3;border-left:4px solid #176b45;padding:10px 12px;border-radius:6px;font-size:13px;color:#496057}.hidden{display:none}@media(max-width:700px){.grid{grid-template-columns:1fr}.top{align-items:flex-start;flex-direction:column}.btn{flex:1}}
 </style>
 </head>
 <body>
 <main class="wrap">
-<div class="card">
-<h1>CMS Blog</h1>
-<p>CMS terhubung ke Google Apps Script. Masukkan CMS API Key untuk mengakses data.</p>
-<input id="key" type="password" placeholder="CMS API Key">
-<button onclick="testConnection()" class="test">Tes Koneksi CMS</button>
-<button onclick="loadPosts()">Muat Artikel</button>
-<p id="connectionStatus" class="small">Build: 2026-09-09-CMSFIX3</p>
-</div>
+<header class="top">
+  <div class="brand"><h1>British Propolis Toili — CMS</h1><p>Kelola artikel website dari GitHub melalui Google Apps Script.</p></div>
+  <button class="btn secondary" onclick="newPost()">+ Artikel Baru</button>
+</header>
 
-<div class="card">
-<h2>✨ Buat Artikel dengan AI</h2>
-<p class="small">AI akan membuat draft yang bisa kamu review dan edit sebelum disimpan.</p>
-<input id="aiTopic" placeholder="Topik artikel, contoh: Manfaat propolis untuk menjaga kesehatan keluarga">
-<div class="grid">
-<input id="aiKeyword" placeholder="Keyword utama">
-<select id="aiLanguage"><option>Indonesia</option><option>English</option></select>
-<select id="aiStyle"><option value="edukasi">Edukasi</option><option value="tips kesehatan">Tips Kesehatan</option><option value="gaya hidup sehat">Gaya Hidup Sehat</option><option value="informasi produk">Informasi Produk</option></select>
-<select id="aiLength"><option value="singkat">Singkat</option><option value="sedang" selected>Sedang</option><option value="panjang">Panjang</option></select>
-</div>
-<button class="ai" onclick="generateAI()">✨ Generate dengan AI</button>
-<p id="aiStatus" class="small"></p>
-</div>
+<section class="card">
+  <div class="field">
+    <label>CMS API Key</label>
+    <input id="key" type="password" placeholder="Masukkan CMS API Key">
+  </div>
+  <div class="actions">
+    <button class="btn secondary" onclick="testConnection()">Tes Koneksi</button>
+    <button class="btn light" onclick="loadPosts()">Muat Artikel</button>
+  </div>
+  <p id="connectionStatus" class="status">CMS belum diuji.</p>
+</section>
 
-<div class="card">
-<h2>Artikel</h2>
-<input id="slug" placeholder="slug, contoh: tips-kesehatan">
-<input id="title" placeholder="Judul">
-<input id="category" placeholder="Kategori">
-<input id="date" type="date">
-<input id="image" placeholder="Path gambar, contoh: assets/images/bpregular/1.png">
-<input id="excerpt" placeholder="Ringkasan">
-<input id="seo" placeholder="SEO description">
-<textarea id="content" placeholder="Isi artikel HTML"></textarea>
-<button onclick="savePost()">Simpan Artikel</button>
-<button onclick="publish()">Publish ke Facebook</button>
-<p id="status" class="small"></p>
-</div>
+<section class="card">
+  <h2 style="margin-top:0">Artikel</h2>
+  <div class="notice">Isi artikel menggunakan HTML sederhana. Gambar utama cukup diisi pada kolom Gambar dan tidak otomatis dimasukkan lagi ke isi artikel.</div>
+  <br>
+  <div class="grid">
+    <div class="field"><label>Judul *</label><input id="title" placeholder="Contoh: Propolis Toili untuk Pemula"></div>
+    <div class="field"><label>Slug *</label><input id="slug" placeholder="propolis-toili-untuk-pemula"></div>
+    <div class="field"><label>Kategori</label><input id="category" value="Edukasi" placeholder="Edukasi"></div>
+    <div class="field"><label>Tanggal</label><input id="date" type="date"></div>
+    <div class="field"><label>Gambar utama</label><input id="image" placeholder="assets/images/bpregular/1.png"></div>
+    <div class="field"><label>SEO description</label><input id="seo" maxlength="160" placeholder="Deskripsi singkat untuk Google"></div>
+  </div>
+  <div class="field"><label>Ringkasan</label><input id="excerpt" placeholder="Ringkasan artikel untuk halaman blog"></div>
+  <div class="field"><label>Isi artikel</label><textarea id="content" placeholder="<p>Paragraf artikel...</p>"></textarea></div>
+  <div class="actions">
+    <button class="btn" onclick="savePost()">Simpan Artikel</button>
+    <button class="btn ai" onclick="showAI()">Buat dengan AI</button>
+    <button class="btn secondary" onclick="previewPost()">Preview</button>
+    <button id="deleteBtn" class="btn danger hidden" onclick="deletePost()">Hapus Artikel</button>
+  </div>
+  <p id="status" class="status"></p>
+</section>
 
-<div class="card">
-<h2>Daftar Artikel</h2>
-<div id="list">Belum dimuat.</div>
-</div>
+<section id="aiBox" class="card hidden">
+  <h2 style="margin-top:0">Buat Draft dengan AI</h2>
+  <div class="grid">
+    <div class="field"><label>Topik *</label><input id="aiTopic" placeholder="Contoh: Propolis Toili untuk pemula"></div>
+    <div class="field"><label>Keyword utama</label><input id="aiKeyword" placeholder="propolis Toili"></div>
+    <div class="field"><label>Bahasa</label><select id="aiLanguage"><option>Indonesia</option><option>English</option></select></div>
+    <div class="field"><label>Gaya</label><select id="aiStyle"><option value="edukasi">Edukasi</option><option value="informasi produk">Informasi Produk</option><option value="gaya hidup sehat">Gaya Hidup Sehat</option></select></div>
+  </div>
+  <div class="actions"><button class="btn ai" onclick="generateAI()">Generate Draft</button><button class="btn light" onclick="$('aiBox').classList.add('hidden')">Tutup</button></div>
+  <p id="aiStatus" class="status"></p>
+</section>
+
+<section class="card">
+  <div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><h2 style="margin:0">Daftar Artikel</h2><span id="count" class="meta"></span></div>
+  <br><input id="search" class="search" placeholder="Cari judul atau kategori..." oninput="renderPosts()">
+  <div id="list">Klik “Muat Artikel”.</div>
+</section>
 </main>
 
 <script>
 const APPS_SCRIPT_URL='https://script.google.com/macros/s/AKfycbxHiGLnhLXEt33YgWMvZYxyH6uQ86ncMIrhH2IzxAejUH7LeOyFRNQNmEnc8ATkXPJ0/exec';
-const BUILD='2026-09-09-CMSFIX3';
-const $=id=>document.getElementById(id);
+const $=id=>document.getElementById(id);let posts=[];let editingSlug='';
+
+function today(){return new Date().toISOString().slice(0,10)}
+function newPost(){editingSlug='';['title','slug','image','excerpt','seo','content'].forEach(k=>$(k).value='');$('category').value='Edukasi';$('date').value=today();$('deleteBtn').classList.add('hidden');$('status').textContent='Form artikel baru siap.';window.scrollTo({top:300,behavior:'smooth'})}
+function showAI(){$('aiBox').classList.toggle('hidden');$('aiTopic').focus()}
 
 async function api(action,data={}){
-  const payload={action,apiKey:$('key').value.trim(),...data};
-  payload.api_key=payload.apiKey;
+  const key=$('key').value.trim();if(!key)throw Error('CMS API Key belum diisi.');
+  const payload={action,apiKey:key,api_key:key,...data};
   const r=await fetch(APPS_SCRIPT_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(payload),cache:'no-store'});
-  const text=await r.text();
-  let x;
-  try{x=JSON.parse(text)}catch(e){throw Error('Respons CMS bukan JSON. Web App Apps Script bermasalah.')}
+  const text=await r.text();let x;try{x=JSON.parse(text)}catch(e){throw Error('Respons CMS bukan JSON. Periksa deployment Apps Script.')}
   return x;
 }
-
-async function testConnection(){
-  $('connectionStatus').textContent='Mengecek koneksi CMS... Build '+BUILD;
-  try{
-    if(!$('key').value.trim()) throw Error('CMS API Key belum diisi.');
-    const x=await api('list_posts');
-    if(!x.ok) throw Error(x.error||'Koneksi CMS gagal.');
-    $('connectionStatus').textContent='✓ Koneksi CMS OK. '+((x.posts||[]).length)+' artikel ditemukan. Build '+BUILD;
-  }catch(e){$('connectionStatus').textContent='✗ '+e.message+' Build '+BUILD}
-}
-
-async function loadPosts(){
-  try{
-    const x=await api('list_posts');
-    if(!x.ok)throw Error(x.error||'Gagal');
-    $('list').innerHTML=(x.posts||[]).map(p=>`<div class="post"><b>${p.title}</b><div class="small">${p.category||''} · ${p.date||''}</div><button onclick='edit(${JSON.stringify(p)})'>Edit</button></div>`).join('')||'Belum ada artikel.';
-    $('status').textContent='Artikel berhasil dimuat.';
-  }catch(e){$('status').textContent=e.message}
-}
-
-function edit(p){['slug','title','category','date','image','excerpt','content'].forEach(k=>$(k).value=p[k]||'');$('seo').value=p.seo_description||''}
-
-async function generateAI(){
-  try{
-    const topic=$('aiTopic').value.trim();
-    if(!topic){$('aiStatus').textContent='Topik artikel wajib diisi.';return}
-    $('aiStatus').textContent='AI sedang membuat artikel...';
-    const x=await api('generate_ai_article',{prompt:{topic:topic,keyword:$('aiKeyword').value.trim(),language:$('aiLanguage').value,style:$('aiStyle').value,length:$('aiLength').value}});
-    if(!x.ok)throw Error(x.error||'Gagal membuat artikel');
-    const a=x.article||{};
-    $('slug').value=a.slug||'';$('title').value=a.title||'';$('category').value=a.category||'';$('date').value=a.date||'';$('image').value=a.image||'';$('excerpt').value=a.excerpt||'';$('seo').value=a.seo_description||'';$('content').value=a.content||'';
-    $('aiStatus').textContent='Draft artikel berhasil dibuat. Silakan review sebelum disimpan.';
-  }catch(e){$('aiStatus').textContent=e.message}
-}
-
-async function savePost(){
-  try{
-    const data={post:{slug:$('slug').value.trim(),title:$('title').value.trim(),category:$('category').value.trim(),date:$('date').value,image:$('image').value.trim(),excerpt:$('excerpt').value.trim(),seo_description:$('seo').value.trim(),content:$('content').value}};
-    const x=await api('save_post',data);
-    $('status').textContent=x.ok?'Artikel tersimpan.':(x.error||'Gagal menyimpan');
-  }catch(e){$('status').textContent=e.message}
-}
-
-async function publish(){
-  try{
-    const x=await api('publish_facebook',{slug:$('slug').value.trim()});
-    $('status').textContent=x.ok?'Berhasil dikirim ke Facebook Page.':(x.error||'Gagal publish');
-  }catch(e){$('status').textContent=e.message}
-}
+async function testConnection(){try{$('connectionStatus').textContent='Mengecek...';const x=await api('list_posts');if(!x.ok)throw Error(x.error||'Koneksi gagal');$('connectionStatus').textContent='✓ Terhubung. '+(x.posts||[]).length+' artikel.';posts=x.posts||[];renderPosts()}catch(e){$('connectionStatus').textContent='✕ '+e.message}}
+async function loadPosts(){try{$('list').textContent='Memuat...';const x=await api('list_posts');if(!x.ok)throw Error(x.error||'Gagal memuat');posts=x.posts||[];renderPosts();$('status').textContent='Daftar artikel diperbarui.'}catch(e){$('list').textContent='✕ '+e.message}}
+function renderPosts(){const q=($('search').value||'').toLowerCase();const filtered=posts.filter(p=>((p.title||'')+' '+(p.category||'')).toLowerCase().includes(q));$('count').textContent=filtered.length+' artikel';$('list').innerHTML=filtered.map(p=>`<div class="post"><div class="post-title">${esc(p.title)}</div><div class="meta">${esc(p.category||'')} · ${esc(p.date||'')} · ${esc(p.slug||'')}</div><div class="post-actions"><button class="btn light" onclick='editPost(${JSON.stringify(p).replace(/'/g,"&#39;")})'>Edit</button><button class="btn secondary" onclick="openPreview('${encodeURIComponent(p.slug||'')}')">Buka</button></div></div>`).join('')||'<div class="meta">Tidak ada artikel.</div>'}
+function esc(s){return String(s||'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
+function editPost(p){editingSlug=p.slug||'';['slug','title','category','date','image','excerpt','content'].forEach(k=>$(k).value=p[k]||'');$('seo').value=p.seo_description||'';$('deleteBtn').classList.remove('hidden');$('status').textContent='Mode edit: '+p.title;window.scrollTo({top:300,behavior:'smooth'})}
+async function savePost(){try{const post={slug:$('slug').value.trim(),title:$('title').value.trim(),category:$('category').value.trim(),date:$('date').value,image:$('image').value.trim(),excerpt:$('excerpt').value.trim(),seo_description:$('seo').value.trim(),content:$('content').value};if(!post.slug||!post.title)throw Error('Judul dan slug wajib diisi.');$('status').textContent='Menyimpan...';const x=await api('save_post',{post});if(!x.ok)throw Error(x.error||'Gagal menyimpan');editingSlug=post.slug;$('deleteBtn').classList.remove('hidden');$('status').textContent='✓ Artikel tersimpan di GitHub. Memuat ulang daftar...';await loadPosts()}catch(e){$('status').textContent='✕ '+e.message}}
+async function deletePost(){if(!editingSlug)return;if(!confirm('Hapus artikel “'+$('title').value+'”?'))return;try{$('status').textContent='Menghapus...';const x=await api('delete_post',{slug:editingSlug});if(!x.ok)throw Error(x.error||'Gagal menghapus');newPost();await loadPosts();$('status').textContent='✓ Artikel berhasil dihapus.'}catch(e){$('status').textContent='✕ '+e.message}}
+async function generateAI(){try{const topic=$('aiTopic').value.trim();if(!topic){$('aiStatus').textContent='Topik wajib diisi.';return}$('aiStatus').textContent='AI sedang membuat draft...';const x=await api('generate_ai_article',{prompt:{topic,keyword:$('aiKeyword').value.trim(),language:$('aiLanguage').value,style:$('aiStyle').value,length:'sedang'}});if(!x.ok)throw Error(x.error||'Gagal membuat draft');const a=x.article||{};['slug','title','category','date','image','excerpt','content'].forEach(k=>$(k).value=a[k]||'');$('seo').value=a.seo_description||'';$('aiStatus').textContent='✓ Draft masuk ke form. Review sebelum menyimpan.'}catch(e){$('aiStatus').textContent='✕ '+e.message}}
+function previewPost(){const title=$('title').value||'Preview Artikel';const content=$('content').value||'<p>Belum ada isi artikel.</p>';const w=window.open('','_blank');w.document.write('<!doctype html><html><head><meta charset="utf-8"><title>'+esc(title)+'</title><style>body{max-width:760px;margin:50px auto;padding:0 20px;font-family:Arial;line-height:1.8;color:#20352c}img{max-width:100%}h1{line-height:1.2}</style></head><body><h1>'+esc(title)+'</h1>'+content+'</body></html>');w.document.close()}
+function openPreview(slug){window.open('../blog.html?slug='+slug,'_blank')}
+$('date').value=today();
 </script>
 </body>
 </html>
